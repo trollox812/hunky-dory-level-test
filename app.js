@@ -4429,10 +4429,13 @@ function buildSubmissionPayload() {
     submittedAt: new Date().toISOString(),
     studentName: state.student.name,
     studentAge: state.student.age,
+    age: state.student.age,
     schoolGrade: state.student.schoolGrade,
+    class: state.student.schoolGrade,
     parentEmail: state.student.parentEmail,
     selfRating: state.selfRating,
     cefrLevel: level.code,
+    bestLevel: level.code,
     finalLevelCode: level.code,
     finalLevelName: level.name,
     suggestedClassLevel: level.code,
@@ -4442,10 +4445,13 @@ function buildSubmissionPayload() {
     totalCorrect: overview.totalCorrect,
     totalQuestions: overview.totalAttempted,
     cumulativePercentage: overview.cumulativePercentage,
+    cumulativePercent: overview.cumulativePercentage + "%",
     lastLevelPassedCode: overview.lastPassedRound ? overview.lastPassedRound.levelCode : "",
     lastLevelPassedName: overview.lastPassedRound ? overview.lastPassedRound.levelName : "",
+    lastPassed: overview.lastPassedRound ? overview.lastPassedRound.levelCode : "",
     failedLevelCode: overview.failedRound ? overview.failedRound.levelCode : "",
     failedLevelName: overview.failedRound ? overview.failedRound.levelName : "",
+    levelFailed: overview.failedRound ? overview.failedRound.levelCode : "",
     grammarCorrect: grammarCorrect,
     grammarQuestions: state.responses.length,
     readingCorrect: readingCorrect,
@@ -4454,7 +4460,14 @@ function buildSubmissionPayload() {
     writingScoreMax: state.writing ? state.writing.scoreMax : 0,
     writingResponseText: state.writing ? state.writing.originalText : "",
     roundsCompleted: state.roundScores.length,
-    roundScores: state.roundScores,
+    roundScores: state.roundScores.map(function (round) {
+      const attemptStats = getRoundAttemptStats(round);
+
+      return Object.assign({}, round, {
+        correct: attemptStats.attemptedCorrect,
+        total: attemptStats.attemptedTotal
+      });
+    }),
     readingResults: state.readingResults,
     writing: state.writing
         ? {
