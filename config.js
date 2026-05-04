@@ -1,5 +1,5 @@
 window.HUNKY_DORY_CONFIG = {
-  googleScriptUrl: "",
+  googleScriptUrl: "https://script.google.com/macros/s/AKfycbyhJFlcfxKMmG4Im3ktFjgZMVnfUfQx4QHgMnrYVinVh7XS8q2hIGsyX7byPOd808fL/exec",
   googleSheetUrl: "https://docs.google.com/spreadsheets/d/1DQKketDHjco_qsyc4jTFfALkXLomlij_srDC5gf0JyA/edit?gid=0#gid=0",
   googleSheetId: "1DQKketDHjco_qsyc4jTFfALkXLomlij_srDC5gf0JyA",
   googleSheetTabName: "Assessment Results",

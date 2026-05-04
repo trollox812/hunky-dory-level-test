@@ -4432,6 +4432,7 @@ function buildSubmissionPayload() {
     schoolGrade: state.student.schoolGrade,
     parentEmail: state.student.parentEmail,
     selfRating: state.selfRating,
+    cefrLevel: level.code,
     finalLevelCode: level.code,
     finalLevelName: level.name,
     suggestedClassLevel: level.code,
@@ -4449,6 +4450,9 @@ function buildSubmissionPayload() {
     grammarQuestions: state.responses.length,
     readingCorrect: readingCorrect,
     readingQuestions: readingQuestions,
+    writingScore: state.writing ? state.writing.score : 0,
+    writingScoreMax: state.writing ? state.writing.scoreMax : 0,
+    writingResponseText: state.writing ? state.writing.originalText : "",
     roundsCompleted: state.roundScores.length,
     roundScores: state.roundScores,
     readingResults: state.readingResults,
@@ -4495,11 +4499,14 @@ function buildSubmissionPayload() {
   };
 }
 
-async function postAssessmentToGoogleSheets(payload) {
+async function submitResults(data) {
   await fetch(GOOGLE_SCRIPT_URL, {
     method: "POST",
     mode: "no-cors",
-    body: JSON.stringify(payload)
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
   });
 }
 
@@ -4526,7 +4533,7 @@ async function syncSubmissionToGoogleSheets() {
 
   try {
     for (let index = 0; index < queue.length; index += 1) {
-      await postAssessmentToGoogleSheets(queue[index]);
+      await submitResults(queue[index]);
     }
 
     clearPendingSubmissions();
