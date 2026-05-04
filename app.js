@@ -2003,14 +2003,7 @@ function buildCorrectionExamples(text, spellingFindings) {
 }
 
 function populateSchoolGrades() {
-  elements.schoolGradeInput.innerHTML = '<option value="">Choose one</option>';
-
-  SCHOOL_GRADES.forEach(function (grade) {
-    const option = document.createElement("option");
-    option.value = grade;
-    option.textContent = grade;
-    elements.schoolGradeInput.appendChild(option);
-  });
+  return;
 }
 
 function updateSheetConfigNote() {
@@ -2071,7 +2064,7 @@ function validateStudentDetails() {
   if (!rawGrade) {
     return {
       valid: false,
-      message: "Please choose a school year or grade."
+      message: "Please enter the school year or grade."
     };
   }
 
@@ -4669,7 +4662,6 @@ elements.writingResultsButton.addEventListener("click", showResults);
 elements.readingSubmitButton.addEventListener("click", submitReading);
 attachWritingInputGuards(elements.writingInput);
 
-populateSchoolGrades();
 updateSheetConfigNote();
 createRatingButtons();
 resetState();
