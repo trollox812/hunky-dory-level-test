@@ -4602,7 +4602,7 @@ async function submitResults(data) {
     mode: "cors",
     redirect: "follow",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "text/plain;charset=utf-8"
     },
     body: JSON.stringify(data)
   });
