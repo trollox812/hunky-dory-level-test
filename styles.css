@@ -653,6 +653,38 @@ select.text-input {
   margin: 22px 0 28px;
 }
 
+.writing-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+
+.writing-timer {
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #f7fbfa;
+  color: var(--ink);
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.writing-timer.is-warning {
+  color: #8a5a00;
+  border-color: #efd28b;
+  background: #fff8e8;
+}
+
+.writing-timer.is-expired {
+  color: #9b3d2f;
+  border-color: #e1a293;
+  background: #fff1ee;
+}
+
 .a0-writing-section {
   display: grid;
   gap: 18px;
@@ -984,6 +1016,10 @@ select.text-input {
 
 .sheet-status.status-local {
   color: #40616a;
+}
+
+.sheet-status.status-failed {
+  color: #9b3d2f;
 }
 
 .level-track {
@@ -1480,6 +1516,11 @@ select.text-input {
   .writing-layout,
   .a0-prompt-card {
     grid-template-columns: 1fr;
+  }
+
+  .writing-header-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .field-grid {

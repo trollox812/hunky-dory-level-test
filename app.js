@@ -1102,6 +1102,7 @@ const GOOGLE_SHEET_URL =
   typeof APP_CONFIG.googleSheetUrl === "string"
     ? APP_CONFIG.googleSheetUrl.trim()
     : "";
+const WRITING_TIME_LIMIT_SECONDS = 3 * 60;
 const PENDING_SUBMISSIONS_KEY = "hunkyDoryPendingSubmissions";
 const CONFIG_WRITING_CHECKS =
   APP_CONFIG.writingChecks && typeof APP_CONFIG.writingChecks === "object"
@@ -1591,6 +1592,11 @@ const state = {
   a0WritingResponses: {},
   selectedWritingPrompt: null,
   writing: null,
+  writingTimer: {
+    remainingSeconds: WRITING_TIME_LIMIT_SECONDS,
+    intervalId: null,
+    expired: false
+  },
   submission: {
     status: "idle",
     message: ""
@@ -1645,6 +1651,7 @@ const elements = {
   a0WritingInstructions: document.querySelector("#a0-writing-instructions"),
   a0WritingList: document.querySelector("#a0-writing-list"),
   writingStandardLayout: document.querySelector("#writing-standard-layout"),
+  writingTimer: document.querySelector("#writing-timer"),
   writingImage: document.querySelector("#writing-image"),
   writingImageFallback: document.querySelector("#writing-image-fallback"),
   writingTaskSummary: document.querySelector("#writing-task-summary"),
@@ -2555,6 +2562,67 @@ function attachWritingInputGuards(field) {
   field.addEventListener("beforeinput", blockWritingBeforeInput);
 }
 
+function formatWritingTime(seconds) {
+  const safeSeconds = Math.max(0, seconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
+  return minutes + ":" + String(remainingSeconds).padStart(2, "0");
+}
+
+function renderWritingTimer() {
+  if (!elements.writingTimer) {
+    return;
+  }
+
+  elements.writingTimer.textContent =
+    state.writingTimer.expired
+      ? "Time finished"
+      : "Time left: " + formatWritingTime(state.writingTimer.remainingSeconds);
+  elements.writingTimer.classList.toggle(
+    "is-warning",
+    !state.writingTimer.expired && state.writingTimer.remainingSeconds <= 60
+  );
+  elements.writingTimer.classList.toggle("is-expired", state.writingTimer.expired);
+}
+
+function stopWritingTimer() {
+  if (state.writingTimer.intervalId) {
+    clearInterval(state.writingTimer.intervalId);
+    state.writingTimer.intervalId = null;
+  }
+}
+
+function setWritingInputsDisabled(disabled) {
+  elements.writingInput.disabled = disabled;
+
+  Array.from(elements.a0WritingList.querySelectorAll("input, textarea")).forEach(function (field) {
+    field.disabled = disabled;
+  });
+}
+
+function startWritingTimer() {
+  stopWritingTimer();
+  state.writingTimer.remainingSeconds = WRITING_TIME_LIMIT_SECONDS;
+  state.writingTimer.expired = false;
+  renderWritingTimer();
+
+  state.writingTimer.intervalId = window.setInterval(function () {
+    if (state.writingTimer.remainingSeconds <= 1) {
+      state.writingTimer.remainingSeconds = 0;
+      state.writingTimer.expired = true;
+      stopWritingTimer();
+      renderWritingTimer();
+      if (!state.writing) {
+        checkWriting(true);
+      }
+      return;
+    }
+
+    state.writingTimer.remainingSeconds -= 1;
+    renderWritingTimer();
+  }, 1000);
+}
+
 function renderA0WritingSection() {
   elements.a0WritingList.innerHTML = "";
 
@@ -2634,6 +2702,10 @@ function showWritingScreen() {
   const writingConfig = getWritingPromptConfig();
   const isA0 = writingConfig.code === "A0";
 
+  state.writing = null;
+  stopWritingTimer();
+  setWritingInputsDisabled(false);
+  elements.writingCheckButton.disabled = false;
   elements.writingScreenTitle.textContent = isA0 ? "Look and answer" : "Writing task";
   elements.writingCheckButton.textContent = isA0 ? "Check Answers" : "Check Writing";
   elements.writingEditorKicker.textContent = isA0
@@ -2684,6 +2756,7 @@ function showWritingScreen() {
   elements.writingFeedback.hidden = true;
   elements.writingFeedback.innerHTML = "";
   elements.writingResultsButton.hidden = true;
+  startWritingTimer();
   showScreen("writing");
 }
 
@@ -3922,7 +3995,11 @@ function analyzeWriting(text, levelCode) {
   };
 }
 
-function checkWriting() {
+function checkWriting(triggeredByTimer) {
+  if (state.writing) {
+    return;
+  }
+
   const writingConfig = getWritingPromptConfig();
   const levelCode = LEVELS[state.finalLevelIndex].code;
   let analysis;
@@ -3955,6 +4032,13 @@ function checkWriting() {
     promptImageAlt: levelCode === "A0" ? "" : writingConfig.writingImageAlt || ""
   });
 
+  stopWritingTimer();
+  if (triggeredByTimer) {
+    state.writingTimer.expired = true;
+  }
+  renderWritingTimer();
+  setWritingInputsDisabled(true);
+  elements.writingCheckButton.disabled = true;
   elements.writingFeedback.hidden = false;
   elements.writingFeedback.innerHTML = buildWritingFeedbackHtml(
     state.writing,
@@ -4513,14 +4597,31 @@ function buildSubmissionPayload() {
 }
 
 async function submitResults(data) {
-  await fetch(GOOGLE_SCRIPT_URL, {
+  const response = await fetch(GOOGLE_SCRIPT_URL, {
     method: "POST",
-    mode: "no-cors",
+    mode: "cors",
+    redirect: "follow",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(data)
   });
+
+  if (!response.ok) {
+    throw new Error("Google Sheets returned HTTP " + response.status + ".");
+  }
+
+  const result = await response.json();
+
+  if (!result || (result.status !== "success" && result.ok !== true)) {
+    throw new Error(
+      result && result.message
+        ? result.message
+        : "Google Sheets did not confirm that the result was saved."
+    );
+  }
+
+  return result;
 }
 
 async function syncSubmissionToGoogleSheets() {
@@ -4554,13 +4655,16 @@ async function syncSubmissionToGoogleSheets() {
   } catch (error) {
     savePendingSubmissions(queue);
     setSubmissionStatus(
-      "local",
-      "We could not reach Google Sheets just now, so this result has been queued in the browser to send later."
+      "failed",
+      "Google Sheets did not confirm this result" +
+        (error && error.message ? ": " + error.message : ".") +
+        " It has been saved in the browser to send later."
     );
   }
 }
 
 function showResults() {
+  stopWritingTimer();
   const level = LEVELS[state.finalLevelIndex];
   const assessmentOverview = getAssessmentOverview();
 
@@ -4597,6 +4701,7 @@ function showResults() {
 }
 
 function resetState() {
+  stopWritingTimer();
   state.attemptId = createAttemptId();
   state.student = createEmptyStudent();
   state.selfRating = null;
@@ -4614,6 +4719,11 @@ function resetState() {
   state.a0WritingResponses = {};
   state.selectedWritingPrompt = null;
   state.writing = null;
+  state.writingTimer = {
+    remainingSeconds: WRITING_TIME_LIMIT_SECONDS,
+    intervalId: null,
+    expired: false
+  };
   state.submission = {
     status: "idle",
     message: GOOGLE_SCRIPT_URL
@@ -4625,9 +4735,12 @@ function resetState() {
 
   elements.ratingOkButton.disabled = true;
   elements.writingInput.value = "";
+  setWritingInputsDisabled(false);
+  elements.writingCheckButton.disabled = false;
   elements.writingFeedback.hidden = true;
   elements.writingFeedback.innerHTML = "";
   elements.writingResultsButton.hidden = true;
+  renderWritingTimer();
   elements.readingSubmitButton.disabled = false;
   setReadingMessage("");
   elements.questionShell.classList.remove("is-fading-out", "is-fading-in");
