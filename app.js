@@ -1098,11 +1098,12 @@ const GOOGLE_SCRIPT_URL =
   typeof APP_CONFIG.googleScriptUrl === "string"
     ? APP_CONFIG.googleScriptUrl.trim()
     : "";
-const RESULTS_SUBMISSION_URL =
-  typeof window !== "undefined" &&
-  /^https?:$/i.test(window.location.protocol)
-    ? "/api/submit-results"
-    : GOOGLE_SCRIPT_URL;
+const RESULTS_SUBMISSION_URLS =
+  typeof window !== "undefined" && /^https?:$/i.test(window.location.protocol)
+    ? ["/api/submit-results", "/api/submit-results.js"]
+    : GOOGLE_SCRIPT_URL
+      ? [GOOGLE_SCRIPT_URL]
+      : [];
 const GOOGLE_SHEET_URL =
   typeof APP_CONFIG.googleSheetUrl === "string"
     ? APP_CONFIG.googleSheetUrl.trim()
@@ -1695,6 +1696,10 @@ function showScreen(screenName) {
       elements.screens[key].classList.remove("active");
     }
   });
+
+  if (typeof window !== "undefined") {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
 }
 
 function getCurrentLevel() {
@@ -2071,10 +2076,10 @@ function validateStudentDetails() {
     };
   }
 
-  if (!Number.isInteger(age) || age < 6 || age > 14) {
+  if (!Number.isInteger(age) || age < 0) {
     return {
       valid: false,
-      message: "Please enter an age between 6 and 14."
+      message: "Please enter a valid age."
     };
   }
 
@@ -4714,48 +4719,59 @@ function buildSubmissionPayload() {
 }
 
 async function submitResults(data) {
-  const isSameOriginRelay = RESULTS_SUBMISSION_URL.indexOf("/") === 0;
-  const requestOptions = {
-    method: "POST",
-    mode: isSameOriginRelay ? "same-origin" : "cors",
-    redirect: "follow",
-    headers: {
-      "Content-Type": isSameOriginRelay
-        ? "application/json"
-        : "text/plain;charset=utf-8"
-    },
-    body: JSON.stringify(data)
-  };
+  const submissionUrls = RESULTS_SUBMISSION_URLS.slice();
 
-  let response = await fetch(RESULTS_SUBMISSION_URL, requestOptions);
-
-  if (isSameOriginRelay && response.status === 404 && GOOGLE_SCRIPT_URL) {
-    response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: "POST",
-      mode: "cors",
-      redirect: "follow",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8"
-      },
-      body: JSON.stringify(data)
-    });
+  if (GOOGLE_SCRIPT_URL && submissionUrls.indexOf(GOOGLE_SCRIPT_URL) === -1) {
+    submissionUrls.push(GOOGLE_SCRIPT_URL);
   }
 
-  if (!response.ok) {
-    throw new Error("Google Sheets returned HTTP " + response.status + ".");
+  let lastError = null;
+
+  for (let index = 0; index < submissionUrls.length; index += 1) {
+    const submissionUrl = submissionUrls[index];
+    const isSameOriginRelay = submissionUrl.indexOf("/") === 0;
+
+    try {
+      const response = await fetch(submissionUrl, {
+        method: "POST",
+        mode: isSameOriginRelay ? "same-origin" : "cors",
+        redirect: "follow",
+        headers: {
+          "Content-Type": isSameOriginRelay
+            ? "application/json"
+            : "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        throw new Error("Google Sheets returned HTTP " + response.status + ".");
+      }
+
+      const rawText = await response.text();
+      let result = null;
+
+      try {
+        result = rawText ? JSON.parse(rawText) : null;
+      } catch (parseError) {
+        result = null;
+      }
+
+      if (!result || (result.status !== "success" && result.ok !== true)) {
+        throw new Error(
+          result && result.message
+            ? result.message
+            : "Google Sheets did not confirm that the result was saved."
+        );
+      }
+
+      return result;
+    } catch (error) {
+      lastError = error;
+    }
   }
 
-  const result = await response.json();
-
-  if (!result || (result.status !== "success" && result.ok !== true)) {
-    throw new Error(
-      result && result.message
-        ? result.message
-        : "Google Sheets did not confirm that the result was saved."
-    );
-  }
-
-  return result;
+  throw lastError || new Error("Submission failed.");
 }
 
 async function syncSubmissionToGoogleSheets() {
@@ -4802,6 +4818,7 @@ async function handleSendResults() {
 }
 
 function handleFinishTest() {
+  stopWritingTimer();
   showScreen("completed");
 }
 
