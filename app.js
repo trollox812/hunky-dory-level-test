@@ -1592,6 +1592,7 @@ const state = {
   responses: [],
   roundScores: [],
   pendingAction: null,
+  pendingWritingNextLevelIndex: null,
   finalLevelIndex: 0,
   finalNote: "",
   a0WritingResponses: {},
@@ -2505,14 +2506,6 @@ function submitReading() {
 function evaluateRound(levelIndex, score) {
   const lastLevelIndex = LEVELS.length - 1;
 
-  if (levelIndex === 0 && levelIndex < lastLevelIndex) {
-    return {
-      continueToNext: true,
-      nextLevelIndex: levelIndex + 1,
-      forcedBridgeToNext: true
-    };
-  }
-
   if (score >= 9) {
     if (levelIndex < lastLevelIndex) {
       return {
@@ -2582,27 +2575,29 @@ function finishRound(readingResult) {
     advanced: outcome.continueToNext
   });
 
+  if (state.currentLevelIndex === 0) {
+    state.finalLevelIndex = 0;
+    state.finalNote =
+      "Everyone completes the A0 picture-answer section before moving on to A1.";
+    state.pendingWritingNextLevelIndex = 1;
+    showWritingScreen();
+    return;
+  }
+
   if (outcome.continueToNext) {
     const nextLevel = LEVELS[outcome.nextLevelIndex];
-    const isGuaranteedA1Bridge = Boolean(outcome.forcedBridgeToNext);
     showTransition(
       state.roundScores.length + 4,
       "Great job! The next 12 are at " + nextLevel.name + " level.",
-      isGuaranteedA1Bridge
-        ? "Everyone completes A0 and A1 before the test decides whether to move higher. You have finished " +
-          level.name +
-          ", and now it is time for " +
-          nextLevel.name +
-          "."
-        : "You got " +
-          grammarScore +
-          " out of 12 grammar questions and " +
-          (readingResult ? readingResult.correct : 0) +
-          " out of " +
-          (readingResult ? readingResult.total : 0) +
-          " reading questions in the " +
-          level.name +
-          " round. Let's keep going.",
+      "You got " +
+        grammarScore +
+        " out of 12 grammar questions and " +
+        (readingResult ? readingResult.correct : 0) +
+        " out of " +
+        (readingResult ? readingResult.total : 0) +
+        " reading questions in the " +
+        level.name +
+        " round. Let's keep going.",
       function () {
         state.currentLevelIndex = outcome.nextLevelIndex;
         state.questionIndex = 0;
@@ -2799,6 +2794,8 @@ function renderWritingHints(level) {
 function showWritingScreen() {
   const writingConfig = getWritingPromptConfig();
   const isA0 = writingConfig.code === "A0";
+  const hasPendingNextLevel =
+    typeof state.pendingWritingNextLevelIndex === "number";
 
   state.writing = null;
   stopWritingTimer();
@@ -2854,6 +2851,9 @@ function showWritingScreen() {
   elements.writingFeedback.hidden = true;
   elements.writingFeedback.innerHTML = "";
   elements.writingResultsButton.hidden = true;
+  elements.writingResultsButton.textContent = hasPendingNextLevel
+    ? "Continue to " + LEVELS[state.pendingWritingNextLevelIndex].code
+    : "View Final Results";
   startWritingTimer();
   showScreen("writing");
 }
@@ -4145,6 +4145,25 @@ function checkWriting(triggeredByTimer) {
   elements.writingResultsButton.hidden = false;
 }
 
+function handleWritingResultsAction() {
+  if (typeof state.pendingWritingNextLevelIndex === "number") {
+    const nextLevelIndex = state.pendingWritingNextLevelIndex;
+    state.pendingWritingNextLevelIndex = null;
+    state.writing = null;
+    state.currentLevelIndex = nextLevelIndex;
+    state.questionIndex = 0;
+    state.selectedChoice = null;
+    elements.writingFeedback.hidden = true;
+    elements.writingFeedback.innerHTML = "";
+    elements.writingResultsButton.hidden = true;
+    renderQuestion();
+    showScreen("question");
+    return;
+  }
+
+  showResults();
+}
+
 function blockWritingTextTransfer(event) {
   event.preventDefault();
 }
@@ -4837,6 +4856,7 @@ function resetState() {
   state.responses = [];
   state.roundScores = [];
   state.pendingAction = null;
+  state.pendingWritingNextLevelIndex = null;
   state.finalLevelIndex = 0;
   state.finalNote = "";
   state.a0WritingResponses = {};
@@ -4914,7 +4934,7 @@ elements.transitionContinueButton.addEventListener("click", function () {
 });
 
 elements.writingCheckButton.addEventListener("click", checkWriting);
-elements.writingResultsButton.addEventListener("click", showResults);
+elements.writingResultsButton.addEventListener("click", handleWritingResultsAction);
 elements.readingSubmitButton.addEventListener("click", submitReading);
 elements.sendResultsButton.addEventListener("click", function () {
   void handleSendResults();
