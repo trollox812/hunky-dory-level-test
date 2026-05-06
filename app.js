@@ -1618,7 +1618,8 @@ const elements = {
     reading: document.querySelector("#reading-screen"),
     question: document.querySelector("#question-screen"),
     writing: document.querySelector("#writing-screen"),
-    result: document.querySelector("#result-screen")
+    result: document.querySelector("#result-screen"),
+    completed: document.querySelector("#completed-screen")
   },
   startTestButton: document.querySelector("#start-test-button"),
   registrationForm: document.querySelector("#registration-form"),
@@ -2504,6 +2505,14 @@ function submitReading() {
 function evaluateRound(levelIndex, score) {
   const lastLevelIndex = LEVELS.length - 1;
 
+  if (levelIndex === 0 && levelIndex < lastLevelIndex) {
+    return {
+      continueToNext: true,
+      nextLevelIndex: levelIndex + 1,
+      forcedBridgeToNext: true
+    };
+  }
+
   if (score >= 9) {
     if (levelIndex < lastLevelIndex) {
       return {
@@ -2575,18 +2584,25 @@ function finishRound(readingResult) {
 
   if (outcome.continueToNext) {
     const nextLevel = LEVELS[outcome.nextLevelIndex];
+    const isGuaranteedA1Bridge = Boolean(outcome.forcedBridgeToNext);
     showTransition(
       state.roundScores.length + 4,
       "Great job! The next 12 are at " + nextLevel.name + " level.",
-      "You got " +
-        grammarScore +
-        " out of 12 grammar questions and " +
-        (readingResult ? readingResult.correct : 0) +
-        " out of " +
-        (readingResult ? readingResult.total : 0) +
-        " reading questions in the " +
-        level.name +
-        " round. Let's keep going.",
+      isGuaranteedA1Bridge
+        ? "Everyone completes A0 and A1 before the test decides whether to move higher. You have finished " +
+          level.name +
+          ", and now it is time for " +
+          nextLevel.name +
+          "."
+        : "You got " +
+          grammarScore +
+          " out of 12 grammar questions and " +
+          (readingResult ? readingResult.correct : 0) +
+          " out of " +
+          (readingResult ? readingResult.total : 0) +
+          " reading questions in the " +
+          level.name +
+          " round. Let's keep going.",
       function () {
         state.currentLevelIndex = outcome.nextLevelIndex;
         state.questionIndex = 0;
@@ -4680,7 +4696,7 @@ function buildSubmissionPayload() {
 
 async function submitResults(data) {
   const isSameOriginRelay = RESULTS_SUBMISSION_URL.indexOf("/") === 0;
-  const response = await fetch(RESULTS_SUBMISSION_URL, {
+  const requestOptions = {
     method: "POST",
     mode: isSameOriginRelay ? "same-origin" : "cors",
     redirect: "follow",
@@ -4690,7 +4706,21 @@ async function submitResults(data) {
         : "text/plain;charset=utf-8"
     },
     body: JSON.stringify(data)
-  });
+  };
+
+  let response = await fetch(RESULTS_SUBMISSION_URL, requestOptions);
+
+  if (isSameOriginRelay && response.status === 404 && GOOGLE_SCRIPT_URL) {
+    response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      mode: "cors",
+      redirect: "follow",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(data)
+    });
+  }
 
   if (!response.ok) {
     throw new Error("Google Sheets returned HTTP " + response.status + ".");
@@ -4753,8 +4783,7 @@ async function handleSendResults() {
 }
 
 function handleFinishTest() {
-  resetState();
-  showScreen("landing");
+  showScreen("completed");
 }
 
 function showResults() {
