@@ -1022,6 +1022,10 @@ select.text-input {
   color: #9b3d2f;
 }
 
+.result-action-row {
+  margin-top: 14px;
+}
+
 .level-track {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-content: start;

@@ -1098,6 +1098,11 @@ const GOOGLE_SCRIPT_URL =
   typeof APP_CONFIG.googleScriptUrl === "string"
     ? APP_CONFIG.googleScriptUrl.trim()
     : "";
+const RESULTS_SUBMISSION_URL =
+  typeof window !== "undefined" &&
+  /^https?:$/i.test(window.location.protocol)
+    ? "/api/submit-results"
+    : GOOGLE_SCRIPT_URL;
 const GOOGLE_SHEET_URL =
   typeof APP_CONFIG.googleSheetUrl === "string"
     ? APP_CONFIG.googleSheetUrl.trim()
@@ -1668,6 +1673,9 @@ const elements = {
   assessmentSummary: document.querySelector("#assessment-summary"),
   studentSummary: document.querySelector("#student-summary"),
   sheetStatus: document.querySelector("#sheet-status"),
+  sendResultsButton: document.querySelector("#send-results-button"),
+  saveResultsButton: document.querySelector("#save-results-button"),
+  finishTestButton: document.querySelector("#finish-test-button"),
   scoreChart: document.querySelector("#score-chart"),
   levelTrack: document.querySelector("#level-track"),
   resultInfographic: document.querySelector("#result-infographic"),
@@ -2107,6 +2115,80 @@ function renderSubmissionStatus() {
   }
 
   elements.sheetStatus.textContent = state.submission.message;
+}
+
+function getResultsExportText() {
+  const overview = getAssessmentOverview();
+  const attemptedLevels = overview.attemptedRounds
+    .map(function (round) {
+      return (
+        round.levelCode +
+        " " +
+        round.levelName +
+        ": " +
+        round.correct +
+        "/" +
+        round.total +
+        " (" +
+        round.percentage +
+        "%)"
+      );
+    })
+    .join("\n");
+
+  return [
+    "Hunky Dory English level test",
+    "",
+    "Student: " + (state.student.name || ""),
+    "Age: " + (state.student.age || ""),
+    "Class: " + (state.student.schoolGrade || ""),
+    "Parent email: " + (state.student.parentEmail || ""),
+    "",
+    "Best level: " + (LEVELS[state.finalLevelIndex] ? LEVELS[state.finalLevelIndex].name : ""),
+    "Last level passed: " + (overview.lastPassedLabel || "None"),
+    "Level failed: " + (overview.failedLabel || "None"),
+    "Cumulative percentage: " + overview.cumulativePercentage + "%",
+    "",
+    "Score per level:",
+    attemptedLevels || "No attempted levels recorded."
+  ].join("\n");
+}
+
+async function saveResultsLocally() {
+  const text = getResultsExportText();
+  const filename =
+    "hunky-dory-results-" +
+    (state.student.name || "student")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") +
+    ".txt";
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "Hunky Dory test results",
+        text: text
+      });
+      return;
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        return;
+      }
+    }
+  }
+
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const downloadUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.setTimeout(function () {
+    URL.revokeObjectURL(downloadUrl);
+  }, 1000);
 }
 
 function createRatingButtons() {
@@ -4597,12 +4679,15 @@ function buildSubmissionPayload() {
 }
 
 async function submitResults(data) {
-  const response = await fetch(GOOGLE_SCRIPT_URL, {
+  const isSameOriginRelay = RESULTS_SUBMISSION_URL.indexOf("/") === 0;
+  const response = await fetch(RESULTS_SUBMISSION_URL, {
     method: "POST",
-    mode: "cors",
+    mode: isSameOriginRelay ? "same-origin" : "cors",
     redirect: "follow",
     headers: {
-      "Content-Type": "text/plain;charset=utf-8"
+      "Content-Type": isSameOriginRelay
+        ? "application/json"
+        : "text/plain;charset=utf-8"
     },
     body: JSON.stringify(data)
   });
@@ -4661,6 +4746,15 @@ async function syncSubmissionToGoogleSheets() {
         " It has been saved in the browser to send later."
     );
   }
+}
+
+async function handleSendResults() {
+  await syncSubmissionToGoogleSheets();
+}
+
+function handleFinishTest() {
+  resetState();
+  showScreen("landing");
 }
 
 function showResults() {
@@ -4793,6 +4887,13 @@ elements.transitionContinueButton.addEventListener("click", function () {
 elements.writingCheckButton.addEventListener("click", checkWriting);
 elements.writingResultsButton.addEventListener("click", showResults);
 elements.readingSubmitButton.addEventListener("click", submitReading);
+elements.sendResultsButton.addEventListener("click", function () {
+  void handleSendResults();
+});
+elements.saveResultsButton.addEventListener("click", function () {
+  void saveResultsLocally();
+});
+elements.finishTestButton.addEventListener("click", handleFinishTest);
 attachWritingInputGuards(elements.writingInput);
 
 updateSheetConfigNote();
