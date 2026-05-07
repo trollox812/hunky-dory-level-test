@@ -2124,78 +2124,52 @@ function renderSubmissionStatus() {
   elements.sheetStatus.textContent = state.submission.message;
 }
 
-function getResultsExportText() {
-  const overview = getAssessmentOverview();
-  const attemptedLevels = overview.attemptedRounds
-    .map(function (round) {
-      return (
-        round.levelCode +
-        " " +
-        round.levelName +
-        ": " +
-        round.correct +
-        "/" +
-        round.total +
-        " (" +
-        round.percentage +
-        "%)"
-      );
-    })
-    .join("\n");
-
-  return [
-    "Hunky Dory English level test",
-    "",
-    "Student: " + (state.student.name || ""),
-    "Age: " + (state.student.age || ""),
-    "Class: " + (state.student.schoolGrade || ""),
-    "Parent email: " + (state.student.parentEmail || ""),
-    "",
-    "Best level: " + (LEVELS[state.finalLevelIndex] ? LEVELS[state.finalLevelIndex].name : ""),
-    "Last level passed: " + (overview.lastPassedLabel || "None"),
-    "Level failed: " + (overview.failedLabel || "None"),
-    "Cumulative percentage: " + overview.cumulativePercentage + "%",
-    "",
-    "Score per level:",
-    attemptedLevels || "No attempted levels recorded."
-  ].join("\n");
-}
-
-async function saveResultsLocally() {
-  const text = getResultsExportText();
-  const filename =
+function getResultsExportFilenameBase() {
+  return (
     "hunky-dory-results-" +
     (state.student.name || "student")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") +
-    ".txt";
+      .replace(/^-|-$/g, "")
+  );
+}
 
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: "Hunky Dory test results",
-        text: text
-      });
-      return;
-    } catch (error) {
-      if (error && error.name === "AbortError") {
-        return;
-      }
-    }
+function clearPrintResultsMode(previousTitle) {
+  if (typeof document === "undefined") {
+    return;
   }
 
-  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-  const downloadUrl = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = downloadUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.setTimeout(function () {
-    URL.revokeObjectURL(downloadUrl);
-  }, 1000);
+  document.body.classList.remove("is-printing-results");
+
+  if (typeof previousTitle === "string") {
+    document.title = previousTitle;
+  }
+}
+
+function saveResultsLocally() {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return;
+  }
+
+  const previousTitle = document.title;
+  const exportTitle = getResultsExportFilenameBase();
+  let cleanedUp = false;
+
+  function cleanup() {
+    if (cleanedUp) {
+      return;
+    }
+
+    cleanedUp = true;
+    clearPrintResultsMode(previousTitle);
+  }
+
+  document.body.classList.add("is-printing-results");
+  document.title = exportTitle;
+  window.addEventListener("afterprint", cleanup, { once: true });
+
+  window.setTimeout(cleanup, 2000);
+  window.print();
 }
 
 function createRatingButtons() {

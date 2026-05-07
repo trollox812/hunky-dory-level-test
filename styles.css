@@ -1584,3 +1584,63 @@ select.text-input {
     scroll-behavior: auto !important;
   }
 }
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body.is-printing-results {
+    background: #ffffff !important;
+  }
+
+  body.is-printing-results .screen {
+    display: none !important;
+  }
+
+  body.is-printing-results #result-screen {
+    display: block !important;
+  }
+
+  body.is-printing-results .app-shell,
+  body.is-printing-results .test-shell {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: #ffffff !important;
+  }
+
+  body.is-printing-results .result-layout {
+    display: block;
+    gap: 0;
+  }
+
+  body.is-printing-results .result-card,
+  body.is-printing-results .assessment-summary-item,
+  body.is-printing-results .review-item,
+  body.is-printing-results .feedback-block {
+    box-shadow: none !important;
+    border-color: #d5dfdb !important;
+    background: #ffffff !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body.is-printing-results .result-card + .result-card {
+    margin-top: 18px;
+  }
+
+  body.is-printing-results .result-action-row,
+  body.is-printing-results .sheet-status {
+    display: none !important;
+  }
+
+  body.is-printing-results .result-header {
+    margin-bottom: 18px;
+  }
+
+  body.is-printing-results .score-chart {
+    max-width: 100%;
+  }
+}
