@@ -1599,6 +1599,7 @@ const state = {
   a0WritingResponses: {},
   selectedWritingPrompt: null,
   writing: null,
+  writtenResponse: "",
   writingTimer: {
     remainingSeconds: WRITING_TIME_LIMIT_SECONDS,
     intervalId: null,
@@ -4108,6 +4109,7 @@ function checkWriting(triggeredByTimer) {
     promptImageSrc: levelCode === "A0" ? "" : writingConfig.writingImageSrc || "",
     promptImageAlt: levelCode === "A0" ? "" : writingConfig.writingImageAlt || ""
   });
+  state.writtenResponse = state.writing.originalText || "";
 
   stopWritingTimer();
   if (triggeredByTimer) {
@@ -4594,6 +4596,8 @@ function clearPendingSubmissions() {
 function buildSubmissionPayload() {
   const level = LEVELS[state.finalLevelIndex];
   const overview = getAssessmentOverview();
+  const writtenResponse =
+    state.writtenResponse || (state.writing && state.writing.originalText) || "";
   const grammarCorrect = state.responses.filter(function (response) {
     return response.correct;
   }).length;
@@ -4638,7 +4642,8 @@ function buildSubmissionPayload() {
     readingQuestions: readingQuestions,
     writingScore: state.writing ? state.writing.score : 0,
     writingScoreMax: state.writing ? state.writing.scoreMax : 0,
-    writingResponseText: state.writing ? state.writing.originalText : "",
+    writingResponseText: writtenResponse,
+    writtenResponse: writtenResponse,
     roundsCompleted: state.roundScores.length,
     roundScores: state.roundScores.map(function (round) {
       const attemptStats = getRoundAttemptStats(round);
@@ -4649,32 +4654,6 @@ function buildSubmissionPayload() {
       });
     }),
     readingResults: state.readingResults,
-    writing: state.writing
-        ? {
-            levelCode: state.writing.levelCode,
-            analysisMode: state.writing.analysisMode,
-            promptText: state.writing.promptText,
-            promptId: state.writing.promptId,
-            promptImageSrc: state.writing.promptImageSrc,
-            promptImageAlt: state.writing.promptImageAlt,
-            promptResponses: state.writing.promptResponses,
-            score: state.writing.score,
-            scoreMax: state.writing.scoreMax,
-            wordCount: state.writing.wordCount,
-            sentenceCount: state.writing.sentenceCount,
-            levelJudgement: state.writing.levelJudgement,
-            taskResponse: state.writing.taskResponse,
-            strengths: state.writing.strengths,
-            areasToImprove: state.writing.areasToImprove,
-            issues: state.writing.issues,
-            mainWeakness: state.writing.mainWeakness,
-            improvementTip: state.writing.improvementTip,
-            correctionExamples: state.writing.correctionExamples,
-            sentenceTypes: state.writing.sentenceTypes,
-            sentenceVarietyComment: state.writing.sentenceVarietyComment,
-            originalText: state.writing.originalText
-          }
-        : null,
     answers: state.responses.map(function (response) {
       return {
         levelCode: response.levelCode,
@@ -4853,6 +4832,7 @@ function resetState() {
   state.a0WritingResponses = {};
   state.selectedWritingPrompt = null;
   state.writing = null;
+  state.writtenResponse = "";
   state.writingTimer = {
     remainingSeconds: WRITING_TIME_LIMIT_SECONDS,
     intervalId: null,
