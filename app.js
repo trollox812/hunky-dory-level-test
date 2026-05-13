@@ -4593,11 +4593,21 @@ function clearPendingSubmissions() {
   localStorage.removeItem(PENDING_SUBMISSIONS_KEY);
 }
 
+function getWritingForMarking() {
+  const liveWritingText = elements.writingInput ? elements.writingInput.value.trim() : "";
+
+  return (
+    state.writtenResponse ||
+    liveWritingText ||
+    (state.writing && state.writing.originalText) ||
+    ""
+  );
+}
+
 function buildSubmissionPayload() {
   const level = LEVELS[state.finalLevelIndex];
   const overview = getAssessmentOverview();
-  const writtenResponse =
-    state.writtenResponse || (state.writing && state.writing.originalText) || "";
+  const writingForMarking = getWritingForMarking();
   const grammarCorrect = state.responses.filter(function (response) {
     return response.correct;
   }).length;
@@ -4642,8 +4652,7 @@ function buildSubmissionPayload() {
     readingQuestions: readingQuestions,
     writingScore: state.writing ? state.writing.score : 0,
     writingScoreMax: state.writing ? state.writing.scoreMax : 0,
-    writingResponseText: writtenResponse,
-    writtenResponse: writtenResponse,
+    writingForMarking: writingForMarking,
     roundsCompleted: state.roundScores.length,
     roundScores: state.roundScores.map(function (round) {
       const attemptStats = getRoundAttemptStats(round);
@@ -4906,6 +4915,9 @@ elements.transitionContinueButton.addEventListener("click", function () {
 
 elements.writingCheckButton.addEventListener("click", checkWriting);
 elements.writingResultsButton.addEventListener("click", handleWritingResultsAction);
+elements.writingInput.addEventListener("input", function () {
+  state.writtenResponse = elements.writingInput.value.trim();
+});
 elements.readingSubmitButton.addEventListener("click", submitReading);
 elements.sendResultsButton.addEventListener("click", function () {
   void handleSendResults();
