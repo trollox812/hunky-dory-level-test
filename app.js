@@ -347,7 +347,7 @@ const TEST_FLOW_STEPS = [
   },
   {
     number: "2",
-    title: "Reading check",
+    title: "Reading",
     text: "A short reading task checks whether the same level still feels right."
   },
   {
@@ -392,7 +392,7 @@ const LEVEL_INFOGRAPHIC_DETAILS = {
 
 const READING_BANK = {
   A0: {
-    title: "Reading check: School notices",
+    title: "Reading: School notices",
     instructions: "Look at the notices. Choose the best answer.",
     imageSrc: "./assets/a0-reading-notices.jpg",
     imageAlt:
@@ -426,7 +426,7 @@ const READING_BANK = {
     ]
   },
   A1: {
-    title: "Reading check: Mia's pet",
+    title: "Reading: Mia's pet",
     instructions: "Look at the pictures and read the captions. Choose Yes or No, or choose the best answer.",
     imageSrc: "./assets/a1-reading-mias-pet.jpg",
     imageAlt:
@@ -460,7 +460,7 @@ const READING_BANK = {
     ]
   },
   A2: {
-    title: "Reading check: A school trip message",
+    title: "Reading: A school trip message",
     instructions: "Look at the message. Choose the best answer.",
     imageSrc: "./assets/a2-reading-school-trip-message.jpg",
     imageAlt:
@@ -495,7 +495,7 @@ const READING_BANK = {
     ]
   },
   B1: {
-    title: "Reading check: Helping at the school fair",
+    title: "Reading: Helping at the school fair",
     instructions: "Read the passage. Choose the best answer.",
     passage: [
       "Last Friday, our school held a fair to raise money for new library books. Amir wanted to help, so he worked at the ring-toss game with his friend Lily. At first, he felt nervous because younger children kept asking questions and the queue was long. Then he made a simple sign that showed how many tickets each turn cost.",
@@ -544,7 +544,7 @@ const READING_BANK = {
     ]
   },
   B2: {
-    title: "Reading check: A phone-free morning",
+    title: "Reading: A phone-free morning",
     instructions: "Read the passage. Choose the best answer.",
     passage: [
       "Some pupils at Greenhill School want a phone-free morning every Wednesday. During the first three lessons, phones would stay in lockers, even at break. The idea began after teachers noticed that many pupils were checking messages between activities and finding it harder to return to work.",
@@ -1616,7 +1616,6 @@ const elements = {
     landing: document.querySelector("#landing-screen"),
     registration: document.querySelector("#registration-screen"),
     welcome: document.querySelector("#welcome-screen"),
-    rating: document.querySelector("#rating-screen"),
     transition: document.querySelector("#transition-screen"),
     reading: document.querySelector("#reading-screen"),
     question: document.querySelector("#question-screen"),
@@ -1634,8 +1633,6 @@ const elements = {
   registrationMessage: document.querySelector("#registration-message"),
   saveDetailsButton: document.querySelector("#save-details-button"),
   welcomeNextButton: document.querySelector("#welcome-next-button"),
-  ratingScale: document.querySelector("#rating-scale"),
-  ratingOkButton: document.querySelector("#rating-ok-button"),
   transitionStep: document.querySelector("#transition-step"),
   transitionTitle: document.querySelector("#transition-title"),
   transitionText: document.querySelector("#transition-text"),
@@ -2173,28 +2170,6 @@ function saveResultsLocally() {
   window.print();
 }
 
-function createRatingButtons() {
-  elements.ratingScale.innerHTML = "";
-
-  for (let rating = 1; rating <= 6; rating += 1) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "rating-button";
-    button.innerHTML = `
-      <span class="rating-star">☆</span>
-      <span class="rating-number">${rating}</span>
-    `;
-    button.addEventListener("click", function () {
-      state.selfRating = rating;
-      Array.from(elements.ratingScale.children).forEach(function (child, index) {
-        child.classList.toggle("selected", index + 1 === rating);
-      });
-      elements.ratingOkButton.disabled = false;
-    });
-    elements.ratingScale.appendChild(button);
-  }
-}
-
 function showTransition(step, title, text, action) {
   state.pendingAction = action;
   elements.transitionStep.textContent = String(step);
@@ -2205,9 +2180,9 @@ function showTransition(step, title, text, action) {
 
 function beginFirstRoundFlow() {
   showTransition(
-    4,
+    3,
     "Let's start with 12 Beginner level questions.",
-    'Choose the best answer each time. If you are not sure, click "I don\'t know." After 12 questions, there will be a short reading check.',
+    'Choose the best answer each time. If you are not sure, click "I don\'t know." After 12 questions, there will be a short reading section.',
     function () {
       state.currentLevelIndex = 0;
       state.questionIndex = 0;
@@ -2298,7 +2273,7 @@ function showReadingScreen() {
     level.code +
     " " +
     level.name +
-    " reading check. Answer these before we decide whether to continue.";
+    " reading. Answer these before we decide whether to continue.";
   elements.readingTitle.textContent = task.title;
   elements.readingInstructions.textContent = task.instructions;
   elements.readingSubmitButton.disabled = false;
@@ -4856,7 +4831,6 @@ function resetState() {
         : "Google Sheets is not connected yet."
   };
 
-  elements.ratingOkButton.disabled = true;
   elements.writingInput.value = "";
   setWritingInputsDisabled(false);
   elements.writingCheckButton.disabled = false;
@@ -4871,9 +4845,6 @@ function resetState() {
   renderRegistrationForm();
   renderSubmissionStatus();
 
-  Array.from(elements.ratingScale.children).forEach(function (child) {
-    child.classList.remove("selected");
-  });
 }
 
 elements.startTestButton.addEventListener("click", function () {
@@ -4898,10 +4869,6 @@ elements.registrationForm.addEventListener("submit", function (event) {
 });
 
 elements.welcomeNextButton.addEventListener("click", function () {
-  showScreen("rating");
-});
-
-elements.ratingOkButton.addEventListener("click", function () {
   beginFirstRoundFlow();
 });
 
@@ -4929,6 +4896,5 @@ elements.finishTestButton.addEventListener("click", handleFinishTest);
 attachWritingInputGuards(elements.writingInput);
 
 updateSheetConfigNote();
-createRatingButtons();
 resetState();
 showScreen("landing");

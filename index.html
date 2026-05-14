@@ -126,24 +126,12 @@
             <ul class="instruction-list">
               <li>Answer all the questions in each round.</li>
               <li>If you do not know the answer, choose "I don't know."</li>
-              <li>Each round has 12 questions, then a short reading check.</li>
-              <li>After the reading check, the app decides whether you are ready for the next level.</li>
+              <li>Each round has 12 questions, then a short reading section.</li>
+              <li>After reading, the app decides whether you are ready for the next level.</li>
               <li>At the end, there is a short writing task with feedback.</li>
             </ul>
             <button id="welcome-next-button" class="primary-button">
               Let's start!
-            </button>
-          </div>
-        </section>
-
-        <section id="rating-screen" class="screen">
-          <div class="content-card centered-card">
-            <div class="step-pill">3</div>
-            <h2>How good is your English?</h2>
-            <p class="support-copy">1 = just starting, 6 = super confident</p>
-            <div id="rating-scale" class="rating-scale"></div>
-            <button id="rating-ok-button" class="primary-button" disabled>
-              OK
             </button>
           </div>
         </section>
@@ -163,7 +151,7 @@
           <div class="content-card wide-card reading-card">
             <div class="step-pill">Reading</div>
             <p id="reading-level-note" class="support-copy"></p>
-            <h2 id="reading-title">Reading check</h2>
+            <h2 id="reading-title">Reading</h2>
             <p id="reading-instructions" class="lead-text"></p>
 
             <div id="reading-passage" class="reading-passage"></div>
@@ -271,15 +259,6 @@
                 <p id="student-summary" class="result-detail"></p>
                 <p id="sheet-status" class="sheet-status"></p>
                 <div class="button-row result-action-row">
-                  <button id="share-results-button" class="secondary-button" type="button">
-                    Share results
-                  </button>
-                  <button id="send-results-button" class="secondary-button" type="button">
-                    Send results
-                  </button>
-                  <button id="save-results-button" class="secondary-button" type="button">
-                    Download / save PDF
-                  </button>
                   <button id="finish-test-button" class="primary-button" type="button">
                     Finish test
                   </button>
