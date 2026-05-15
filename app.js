@@ -1674,8 +1674,6 @@ const elements = {
   assessmentSummary: document.querySelector("#assessment-summary"),
   studentSummary: document.querySelector("#student-summary"),
   sheetStatus: document.querySelector("#sheet-status"),
-  sendResultsButton: document.querySelector("#send-results-button"),
-  saveResultsButton: document.querySelector("#save-results-button"),
   finishTestButton: document.querySelector("#finish-test-button"),
   scoreChart: document.querySelector("#score-chart"),
   levelTrack: document.querySelector("#level-track"),
@@ -4750,10 +4748,6 @@ async function syncSubmissionToGoogleSheets() {
   }
 }
 
-async function handleSendResults() {
-  await syncSubmissionToGoogleSheets();
-}
-
 function handleFinishTest() {
   stopWritingTimer();
   showScreen("completed");
@@ -4886,12 +4880,6 @@ elements.writingInput.addEventListener("input", function () {
   state.writtenResponse = elements.writingInput.value.trim();
 });
 elements.readingSubmitButton.addEventListener("click", submitReading);
-elements.sendResultsButton.addEventListener("click", function () {
-  void handleSendResults();
-});
-elements.saveResultsButton.addEventListener("click", function () {
-  void saveResultsLocally();
-});
 elements.finishTestButton.addEventListener("click", handleFinishTest);
 attachWritingInputGuards(elements.writingInput);
 
