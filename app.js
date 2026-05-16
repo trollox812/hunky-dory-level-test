@@ -2806,7 +2806,7 @@ function showWritingScreen() {
   elements.writingResultsButton.hidden = true;
   elements.writingResultsButton.textContent = hasPendingNextLevel
     ? "Continue to " + LEVELS[state.pendingWritingNextLevelIndex].code
-    : "View Final Results";
+    : "Finish test";
   startWritingTimer();
   showScreen("writing");
 }
@@ -4755,38 +4755,7 @@ function handleFinishTest() {
 
 function showResults() {
   stopWritingTimer();
-  const level = LEVELS[state.finalLevelIndex];
-  const assessmentOverview = getAssessmentOverview();
-
-  elements.resultTitle.textContent = level.name;
-  elements.resultSummary.textContent = level.summary;
-  elements.resultDetail.textContent =
-    state.finalNote +
-    " " +
-    level.detail +
-    " " +
-    "Cumulative score: " +
-    assessmentOverview.totalCorrect +
-    " / " +
-    assessmentOverview.totalAttempted +
-    " (" +
-    assessmentOverview.cumulativePercentage +
-    "%) across " +
-    assessmentOverview.attemptedRounds.length +
-    " attempted level" +
-    (assessmentOverview.attemptedRounds.length === 1 ? "" : "s") +
-    ".";
-
-  buildStudentSummary();
-  buildAssessmentSummary();
-  buildScoreChart(assessmentOverview.totalCorrect);
-  buildLevelTrack();
-  buildResultInfographic();
-  buildRoundSummary();
-  buildWritingSummary();
-  buildReviewList();
-  renderSubmissionStatus();
-  showScreen("result");
+  showScreen("completed");
   void syncSubmissionToGoogleSheets();
 }
 
