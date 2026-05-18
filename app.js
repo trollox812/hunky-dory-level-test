@@ -4091,11 +4091,8 @@ function checkWriting(triggeredByTimer) {
   renderWritingTimer();
   setWritingInputsDisabled(true);
   elements.writingCheckButton.disabled = true;
-  elements.writingFeedback.hidden = false;
-  elements.writingFeedback.innerHTML = buildWritingFeedbackHtml(
-    state.writing,
-    elements.writingInput.value.trim()
-  );
+  elements.writingFeedback.hidden = true;
+  elements.writingFeedback.innerHTML = "";
   elements.writingResultsButton.hidden = false;
 }
 
