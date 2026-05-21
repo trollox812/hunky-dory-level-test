@@ -479,7 +479,7 @@ select.text-input {
 .question-heading {
   margin-bottom: 32px;
   max-width: 24ch;
-  font-size: clamp(2.25rem, 4vw, 3.4rem);
+  font-size: clamp(1.9rem, 3vw, 2.8rem);
   line-height: 1.16;
   font-weight: 800;
 }
@@ -505,7 +505,7 @@ select.text-input {
   background: #f4f8f7;
   color: var(--ink);
   font: inherit;
-  font-size: 1.1rem;
+  font-size: 1.18rem;
   line-height: 1.35;
   text-align: left;
   cursor: pointer;

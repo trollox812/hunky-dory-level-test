@@ -2293,7 +2293,7 @@ function renderQuestion() {
   elements.questionProgress.textContent =
     label + ". Question " + (state.questionIndex + 1) + " of " + QUESTIONS_PER_LEVEL;
   elements.roundChip.textContent = "Round " + roundNumber;
-  elements.questionPrompt.textContent = label + ". " + question.prompt + "*";
+  elements.questionPrompt.textContent = label + ". " + question.prompt;
 
   elements.choiceList.innerHTML = "";
 
